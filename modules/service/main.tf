@@ -592,12 +592,13 @@ module "container_definition" {
 
 locals {
   create_task_definition = var.create && var.create_task_definition
+  task_definition_family = coalesce(var.family, var.name)
 
   # This allows us to query both the existing as well as Terraform's state and get
   # and get the max version of either source, useful for when external resources
   # update the container definition
   max_task_def_revision = local.create_task_definition ? max(aws_ecs_task_definition.this[0].revision, data.aws_ecs_task_definition.this[0].revision) : 0
-  task_definition       = local.create_task_definition ? "${aws_ecs_task_definition.this[0].family}:${local.max_task_def_revision}" : var.task_definition_arn
+  task_definition       = local.create_task_definition ? "${local.task_definition_family}:${local.max_task_def_revision}" : var.task_definition_arn
 }
 
 # This allows us to query both the existing as well as Terraform's state and get
@@ -606,7 +607,7 @@ locals {
 data "aws_ecs_task_definition" "this" {
   count = local.create_task_definition ? 1 : 0
 
-  task_definition = aws_ecs_task_definition.this[0].family
+  task_definition = local.task_definition_family
 
   depends_on = [
     # Needs to exist first on first deployment
@@ -630,8 +631,8 @@ resource "aws_ecs_task_definition" "this" {
   }
 
   execution_role_arn = try(aws_iam_role.task_exec[0].arn, var.task_exec_iam_role_arn)
-  family             = coalesce(var.family, var.name)
-
+  family             = local.task_definition_family
+  
   dynamic "inference_accelerator" {
     for_each = var.inference_accelerator
 
