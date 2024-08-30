@@ -608,11 +608,6 @@ data "aws_ecs_task_definition" "this" {
   count = local.create_task_definition ? 1 : 0
 
   task_definition = local.task_definition_family
-
-  depends_on = [
-    # Needs to exist first on first deployment
-    aws_ecs_task_definition.this
-  ]
 }
 
 resource "aws_ecs_task_definition" "this" {
